@@ -31,7 +31,7 @@ export default function App() {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18&addressdetails=1`);
             const data = await res.json();
             const a = data.address;
-            return a?.village || a?.neighbourhood || a?.hamlet || a?.suburb || a?.residential || a?.town || data.name || "Area Peta";
+            return a?.road || a?.pedestrian || a?.path || a?.route || a?.village || a?.neighbourhood || a?.hamlet || a?.suburb || a?.residential || a?.town || data.name || "Jalan Tanpa Nama";
         } catch(e) {
             return "Area Peta";
         }

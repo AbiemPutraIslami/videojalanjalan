@@ -85,9 +85,9 @@ function MapEvents({ onAddPoint }: { onAddPoint: (p: Point) => void }) {
 }
 
 function AnimationController({
-  points, routeLine, isAnimating, onAnimationComplete, speed, vehicleType, is3D, pointNames, routeColor = '#3b82f6'
+  points, routeLine, routeSteps, isAnimating, onAnimationComplete, speed, vehicleType, is3D, pointNames, routeColor = '#3b82f6'
 }: {
-  points: Point[], routeLine: any, isAnimating: boolean, onAnimationComplete: () => void, speed: number, vehicleType: string, is3D: boolean, pointNames: string[], routeColor?: string
+  points: Point[], routeLine: any, routeSteps: {startDistMeters: number; endDistMeters: number; name: string}[], isAnimating: boolean, onAnimationComplete: () => void, speed: number, vehicleType: string, is3D: boolean, pointNames: string[], routeColor?: string
 }) {
   const map = useMap();
   const animRef = useRef<number>();
@@ -198,17 +198,27 @@ function AnimationController({
           }
 
           if (labelEl) {
-              let closestIdx = 0;
-              let minDistance = Infinity;
+              let locationName = pointNames[Math.max(0, points.length - 1)] || 'Area Peta';
               
-              for (let i = 0; i < points.length; i++) {
-                 const d = Math.pow(coord[0] - points[i].lng, 2) + Math.pow(coord[1] - points[i].lat, 2);
-                 if (d < minDistance) {
-                     minDistance = d;
-                     closestIdx = i;
+              if (routeSteps && routeSteps.length > 0) {
+                 const currentDistMeters = distance * 1000;
+                 const step = routeSteps.find(s => currentDistMeters >= s.startDistMeters && currentDistMeters <= s.endDistMeters);
+                 if (step && step.name && step.name !== "Jalan Tanpa Nama") {
+                     locationName = step.name;
                  }
+              } else {
+                 let closestIdx = 0;
+                 let minDist = Infinity;
+                 for (let i = 0; i < points.length; i++) {
+                    const d = Math.pow(coord[0] - points[i].lng, 2) + Math.pow(coord[1] - points[i].lat, 2);
+                    if (d < minDist) {
+                        minDist = d;
+                        closestIdx = i;
+                    }
+                 }
+                 locationName = pointNames[closestIdx] || 'Area Peta';
               }
-              const locationName = pointNames[closestIdx] || 'Area Peta';
+              
               if (labelEl.innerText !== locationName) {
                   labelEl.innerText = locationName;
               }
@@ -313,6 +323,8 @@ export default function TravelMap(props: TravelMapProps) {
   } = props;
 
   const [routeLine, setRouteLine] = useState<any>(null);
+  const [routeSteps, setRouteSteps] = useState<{startDistMeters: number; endDistMeters: number; name: string}[]>([]);
+
 
   const getTileSettings = (style: string) => {
     switch (style) {
@@ -382,7 +394,7 @@ export default function TravelMap(props: TravelMapProps) {
       try {
         const profile = vehicleType === 'motorcycle' ? 'driving' : 'foot';
         const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
-        const res = await fetch(`https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`);
+        const res = await fetch(`https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&steps=true`);
         const data = await res.json();
         
         if (cancelled) return;
@@ -390,6 +402,22 @@ export default function TravelMap(props: TravelMapProps) {
         if (data.code === 'Ok' && data.routes && data.routes[0]) {
            setRouteLine(turf.lineString(data.routes[0].geometry.coordinates));
            const distMeters = data.routes[0].distance;
+           
+           const steps: {startDistMeters: number; endDistMeters: number; name: string}[] = [];
+           let currentDist = 0;
+           data.routes[0].legs.forEach((leg: any) => {
+             leg.steps.forEach((step: any) => {
+               const stepName = step.name || (step.maneuver && step.maneuver.type === 'depart' ? 'Memulai Perjalanan' : 'Jalan Tanpa Nama');
+               steps.push({
+                 startDistMeters: currentDist,
+                 endDistMeters: currentDist + step.distance,
+                 name: stepName
+               });
+               currentDist += step.distance;
+             });
+           });
+           setRouteSteps(steps);
+           
            const distKm = distMeters / 1000;
            const assumedSpeedKmh = vehicleType === 'motorcycle' ? 35 : 4.5;
            if (onRouteCalculated) onRouteCalculated(distMeters, (distKm / assumedSpeedKmh) * 3600);
@@ -515,6 +543,7 @@ export default function TravelMap(props: TravelMapProps) {
       <AnimationController 
         points={points} 
         routeLine={routeLine} 
+        routeSteps={routeSteps}
         isAnimating={isAnimating} 
         onAnimationComplete={onAnimationComplete} 
         speed={speed} 
