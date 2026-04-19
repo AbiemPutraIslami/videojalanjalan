@@ -101,7 +101,8 @@ function AnimationController({
     let animationActive = true;
     const length = turf.length(routeLine, { units: 'kilometers' });
     const baseDurationMs = typeof speed === 'number' && speed > 0 ? (100 / speed) * 3000 : 3000;
-    const duration = Math.max(1000, Math.min(baseDurationMs, 10000));
+    // Hapus batas maksimal durasi (10000) agar user bisa membuat animasi sangat lambat
+    const duration = Math.max(500, baseDurationMs);
     
     let startTime: number | null = null;
     const initialPos: [number, number] = [points[0].lat, points[0].lng];
@@ -167,7 +168,6 @@ function AnimationController({
       // Shortest path difference for smooth rotation
       const isWalking = vehicleType === 'walking';
       const bearingSmooth = isWalking ? 0.04 : 0.18;
-      const pursuitSmooth = isWalking ? 0.03 : 0.14;
 
       let bearingDiff = ((targetBearing - currentBearing + 180) % 360 + 360) % 360 - 180;
       currentBearing += bearingDiff * bearingSmooth;
@@ -224,24 +224,24 @@ function AnimationController({
         let targetCenterLng = latLng[1];
         
         if (distance < length) {
-           const maxAhead = Math.min(Math.max(length * 0.15, 0.5), 2.5);
+           // Fixed navigation zoom level for that Google Maps feel
+           targetZoom = isWalking ? 18 : 17;
+           
+           // Peek slightly ahead (not kilometers ahead)
+           const maxAhead = isWalking ? 0.02 : 0.06; // 20m or 60m peek
            const viewAheadDist = Math.min(distance + maxAhead, length);
            const aheadPt = turf.along(routeLine, viewAheadDist, { units: 'kilometers' }).geometry.coordinates;
            
-           targetCenterLat = (latLng[0] + aheadPt[1]) / 2;
-           targetCenterLng = (latLng[1] + aheadPt[0]) / 2;
-           
-           const distToAhead = turf.distance(currentPoint, turf.point(aheadPt));
-           
-           // Continuous Zoom mapping: 1.5km ahead -> zoom 14, 0.4km ahead -> zoom 16.5
-           const calculatedZoom = 17.5 - (distToAhead * 1.4);
-           targetZoom = Math.max(13.5, Math.min(17.2, calculatedZoom));
+           // Bias heavily towards the vehicle to keep it centered-ish like navigation
+           targetCenterLat = (latLng[0] * 0.8) + (aheadPt[1] * 0.2);
+           targetCenterLng = (latLng[1] * 0.8) + (aheadPt[0] * 0.2);
         }
         
-        // High-performance smooth pursuit for camera
-        currentMapCenterLat += (targetCenterLat - currentMapCenterLat) * pursuitSmooth;
-        currentMapCenterLng += (targetCenterLng - currentMapCenterLng) * pursuitSmooth;
-        currentMapZoom += (targetZoom - currentMapZoom) * (isWalking ? 0.02 : 0.04);
+        // High-performance smooth pursuit for camera (snappier for navigation)
+        const camPursuit = isWalking ? 0.1 : 0.25;
+        currentMapCenterLat += (targetCenterLat - currentMapCenterLat) * camPursuit;
+        currentMapCenterLng += (targetCenterLng - currentMapCenterLng) * camPursuit;
+        currentMapZoom += (targetZoom - currentMapZoom) * 0.05;
         
         map.setView([currentMapCenterLat, currentMapCenterLng], currentMapZoom, { animate: false });
       }
