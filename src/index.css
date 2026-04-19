@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #0f172a;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #f8fafc;
+}
+
+/* Ensure Leaflet container stays completely behind UI layer */
+.leaflet-container {
+  background-color: #e2e8f0 !important;
+  font-family: inherit;
+  z-index: 0 !important;
+}
+
+/* Clean transition for dragging and moving */
+.leaflet-proxy {
+  transition: transform 0.1s linear;
+}
+
+/* Custom Sleek Zoom Controls */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  margin-top: 24px !important;
+  margin-right: 24px !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: rgba(30, 41, 59, 0.95) !important;
+  color: #f8fafc !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+.leaflet-control-zoom-in {
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* Custom Sleek Slider Thumb */
+.custom-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.custom-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.custom-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+  cursor: pointer;
+}
+
+/* 3D Map View */
+.map-3d-wrapper {
+  width: 100%;
+  height: 100%;
+  perspective: 1000px;
+  overflow: hidden;
+  background-color: #0f172a;
+}
+
+.map-3d-inner {
+  width: 100%;
+  height: 100%;
+  transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+  transform-origin: center 60%;
+}
+
+.map-3d-inner.active {
+  transform: rotateX(55deg) scale(1.4);
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Remix: TravelBoast Animator",
+  "description": "Create animated travel routes on a map.",
+  "requestFramePermissions": [
+    "display-capture"
+  ],
+  "majorCapabilities": []
+}
